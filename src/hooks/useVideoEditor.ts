@@ -3,7 +3,14 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { EditRecipe, ExportResult, ExportStatus, MAX_FILE_SIZE, OverlayPosition, isValidRecipe } from "@/lib/types";
 import { DEFAULT_RECIPE, SPEED_STEPS } from "@/lib/constants";
-import { getPresetById } from "@/lib/presets";
+import {
+  CustomPreset,
+  MAX_CUSTOM_PRESETS,
+  getPresetById,
+  getRecipeDimensions,
+  loadCustomPresets,
+  saveCustomPresets,
+} from "@/lib/presets";
 import { loadFFmpeg, exportVideo, terminateFFmpeg, FFmpegLoadError } from "@/lib/ffmpeg";
 import { suggestPreset } from "@/lib/presetSuggestion";
 import { validateDimensions, getDownscaledDimensions } from "@/utils/video-validation";
@@ -137,6 +144,7 @@ export function useVideoEditor() {
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileError, setFileError] = useState("");
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const exportAbortControllerRef = useRef<AbortController | null>(null);
   const exportCancelledRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -161,6 +169,61 @@ export function useVideoEditor() {
     return next;
   });
 }, []);
+
+  useEffect(() => {
+    setCustomPresets(loadCustomPresets());
+  }, []);
+
+  const saveCustomPreset = useCallback((name: string) => {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return { ok: false, message: "Preset name is required." };
+    }
+
+    if (customPresets.length >= MAX_CUSTOM_PRESETS) {
+      return {
+        ok: false,
+        message: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before saving another.`,
+      };
+    }
+
+    const id = `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const dimensions = getRecipeDimensions(recipe);
+    const presetRecipe: EditRecipe = {
+      ...recipe,
+      preset: id,
+      customWidth: dimensions.width,
+      customHeight: dimensions.height,
+    };
+    const nextPreset: CustomPreset = {
+      id,
+      name: trimmedName,
+      recipe: presetRecipe,
+      createdAt: Date.now(),
+    };
+    const nextPresets = [...customPresets, nextPreset];
+
+    setCustomPresets(nextPresets);
+    saveCustomPresets(nextPresets);
+    setRecipe(presetRecipe);
+
+    return { ok: true, message: `"${trimmedName}" saved as a custom preset.` };
+  }, [customPresets, recipe]);
+
+  const deleteCustomPreset = useCallback((id: string) => {
+    const nextPresets = customPresets.filter((preset) => preset.id !== id);
+    setCustomPresets(nextPresets);
+    saveCustomPresets(nextPresets);
+    setRecipe((prev) => prev.preset === id ? { ...prev, preset: "custom" } : prev);
+  }, [customPresets]);
+
+  const loadCustomPreset = useCallback((id: string) => {
+    const preset = customPresets.find((item) => item.id === id);
+    if (!preset) return;
+    setRecipe(preset.recipe);
+  }, [customPresets]);
+
   const isValidValue = (key: keyof EditRecipe, val: any): boolean => {
     switch (key) {
       case "preset":
@@ -641,9 +704,13 @@ export function useVideoEditor() {
     progress,
     result,
     error,
+    customPresets,
     videoRef,
     seekTo,
     updateRecipe,
+    saveCustomPreset,
+    deleteCustomPreset,
+    loadCustomPreset,
     handleFileSelect,
     fileError,
     handleExport,

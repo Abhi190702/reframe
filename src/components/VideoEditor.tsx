@@ -18,8 +18,8 @@ import ImageOverlay from "./ImageOverlay"
 
 import { cn } from "@/lib/utils";
 import {
-  Layers, Crop, Scissors, RotateCw, Volume2,
-  SlidersHorizontal, Zap, AlertTriangle, Github, Copy
+  Layers, Scissors, RotateCw, Volume2,
+  SlidersHorizontal, Zap, AlertTriangle, Copy
 } from "lucide-react";
 import OnboardingTour from "./OnboardingTour";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -206,7 +206,8 @@ function KeyboardShortcutsPanel() {
 export default function VideoEditor() {
   const {
     file, duration, recipe, status, progress,
-    result, error, updateRecipe,
+    result, error, customPresets, updateRecipe,
+    saveCustomPreset, deleteCustomPreset, loadCustomPreset,
     handleFileSelect, fileError, handleExport, cancelExport, reset, resetSettings,
     videoRef,
     seekTo,
@@ -571,7 +572,14 @@ export default function VideoEditor() {
                     </p>
                   </div>
                 )}
-                <PresetSelector recipe={recipe} onChange={updateRecipe} />
+                <PresetSelector
+                  recipe={recipe}
+                  customPresets={customPresets}
+                  onChange={updateRecipe}
+                  onSavePreset={saveCustomPreset}
+                  onDeletePreset={deleteCustomPreset}
+                  onSelectCustomPreset={loadCustomPreset}
+                />
                 <div className="mt-3">
                   <FramingControl recipe={recipe} onChange={updateRecipe} />
                 </div>

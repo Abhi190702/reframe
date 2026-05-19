@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
-import { Search, Settings2 } from "lucide-react";
+import { Search, Settings2, Save, X } from "lucide-react";
 
-import { PRESETS } from "@/lib/presets";
+import { CustomPreset, MAX_CUSTOM_PRESETS, PRESETS } from "@/lib/presets";
 import { EditRecipe } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
   recipe: EditRecipe;
+  customPresets: CustomPreset[];
   onChange: (patch: Partial<EditRecipe>) => void;
+  onSavePreset: (name: string) => { ok: boolean; message: string };
+  onDeletePreset: (id: string) => void;
+  onSelectCustomPreset: (id: string) => void;
 }
 
 function getOrientationLabel(width: number, height: number): string {
@@ -47,6 +51,10 @@ function RatioBox({
       style={{ width: w, height: h }}
     />
   );
+}
+
+function sanitizeDimensionInput(value: string): string {
+  return value.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
 }
 
 const QUICK_ACTIONS = [
@@ -102,8 +110,25 @@ const QUICK_ACTIONS = [
   },
 ] as const;
 
-export default function PresetSelector({ recipe, onChange }: Props) {
+export default function PresetSelector({
+  recipe,
+  customPresets,
+  onChange,
+  onSavePreset,
+  onDeletePreset,
+  onSelectCustomPreset,
+}: Props) {
   const [search, setSearch] = useState("");
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [presetName, setPresetName] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [widthInput, setWidthInput] = useState(String(recipe.customWidth));
+  const [heightInput, setHeightInput] = useState(String(recipe.customHeight));
+  const presetNameRef = useRef<HTMLInputElement>(null);
+
+  const isCustomRecipe =
+    recipe.preset === "custom" ||
+    customPresets.some((preset) => preset.id === recipe.preset);
 
   const filteredPresets = PRESETS.filter(
     (preset) =>
@@ -120,23 +145,55 @@ export default function PresetSelector({ recipe, onChange }: Props) {
     [onChange],
   );
 
-  const handleWidthChange = useCallback(
-    (width: number) => {
-      if (!isNaN(width) && width >= 16 && width <= 7680) {
-        onChange({ customWidth: width });
-      }
-    },
-    [onChange],
-  );
+  useEffect(() => {
+    if (isSaveOpen) {
+      presetNameRef.current?.focus();
+    }
+  }, [isSaveOpen]);
 
-  const handleHeightChange = useCallback(
-    (height: number) => {
-      if (!isNaN(height) && height >= 16 && height <= 7680) {
-        onChange({ customHeight: height });
-      }
-    },
-    [onChange],
-  );
+  useEffect(() => {
+    setWidthInput(String(recipe.customWidth));
+  }, [recipe.customWidth]);
+
+  useEffect(() => {
+    setHeightInput(String(recipe.customHeight));
+  }, [recipe.customHeight]);
+
+  const handleWidthInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = sanitizeDimensionInput(event.target.value);
+    setWidthInput(nextValue);
+    if (!nextValue) return;
+    onChange({ preset: "custom", customWidth: Number(nextValue) });
+  }, [onChange]);
+
+  const handleHeightInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = sanitizeDimensionInput(event.target.value);
+    setHeightInput(nextValue);
+    if (!nextValue) return;
+    onChange({ preset: "custom", customHeight: Number(nextValue) });
+  }, [onChange]);
+
+  const handleOpenSave = () => {
+    if (customPresets.length >= MAX_CUSTOM_PRESETS) {
+      setFeedback(`You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before saving another.`);
+      return;
+    }
+
+    setPresetName("");
+    setFeedback(null);
+    setIsSaveOpen(true);
+  };
+
+  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const result = onSavePreset(presetName);
+    setFeedback(result.message);
+
+    if (result.ok) {
+      setIsSaveOpen(false);
+      setPresetName("");
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -170,18 +227,33 @@ export default function PresetSelector({ recipe, onChange }: Props) {
         })}
       </div>
 
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-          <Search size={14} className="text-[var(--muted)]" />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="relative flex-1">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Search size={14} className="text-[var(--muted)]" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search formats..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] py-2 pl-9 pr-3 text-sm font-heading text-[var(--text)] transition-shadow focus:outline-none focus:ring-2 focus:ring-film-400"
+          />
         </div>
-        <input
-          type="text"
-          placeholder="Search formats..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] py-2 pl-9 pr-3 text-sm font-heading text-[var(--text)] transition-shadow focus:outline-none focus:ring-2 focus:ring-film-400"
-        />
+
+        <button
+          type="button"
+          onClick={handleOpenSave}
+          className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg border border-film-300 bg-film-50 px-3 text-xs font-heading font-bold uppercase tracking-wider text-film-700 transition-colors hover:bg-film-100"
+        >
+          <Save size={14} />
+          Save preset
+        </button>
       </div>
+
+      {feedback && (
+        <p className="text-xs font-medium text-[var(--muted)]">{feedback}</p>
+      )}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {filteredPresets.length === 0 ? (
@@ -272,65 +344,193 @@ export default function PresetSelector({ recipe, onChange }: Props) {
         </button>
       </div>
 
-      {recipe.preset === "custom" && (
-        <div className="mt-2 flex items-center gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm animate-fade-in">
-          <div className="flex-1">
-            <label
-              htmlFor="custom-width"
-              className="mb-1.5 block text-[10px] font-heading font-semibold uppercase tracking-wider text-[var(--muted)]"
-            >
-              Width
-            </label>
-            <input
-              id="custom-width"
-              type="number"
-              autoComplete="off" 
-              min={16}
-              max={7680}
-              step={2}
-              value={recipe.customWidth}
-              onChange={(e) => handleWidthChange(Number(e.target.value))}
-              className="w-full min-w-20 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-heading transition-all focus:outline-none focus:ring-2 focus:ring-film-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
+      {customPresets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-heading font-bold uppercase tracking-widest text-[var(--muted)]">
+            Custom
+          </p>
+          <div className="grid grid-cols-1 gap-2">
+            {customPresets.map((preset) => {
+              const active = recipe.preset === preset.id;
+              const { customWidth, customHeight, quality, format } = preset.recipe;
 
-          <div className="flex h-full flex-col items-center justify-center">
-            <span className="font-heading text-sm font-medium text-[var(--muted)]">
-              ×
-            </span>
+              return (
+                <div
+                  key={preset.id}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg border bg-[var(--surface)] p-3 transition-colors",
+                    active
+                      ? "border-film-500 bg-film-50"
+                      : "border-[var(--border)] hover:border-film-300",
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => onSelectCustomPreset(preset.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    aria-pressed={active}
+                  >
+                    <RatioBox
+                      width={customWidth}
+                      height={customHeight}
+                      active={active}
+                    />
+                    <span className="min-w-0">
+                      <span
+                        className={cn(
+                          "block truncate text-sm font-heading font-bold",
+                          active ? "text-film-700" : "text-[var(--text)]",
+                        )}
+                      >
+                        {preset.name}
+                      </span>
+                      <span className="block text-[11px] leading-tight text-[var(--muted)]">
+                        {customWidth}x{customHeight} - CRF {quality} - {format.toUpperCase()}
+                      </span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeletePreset(preset.id)}
+                    className="rounded-md p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--border)] hover:text-[var(--text)]"
+                    aria-label={`Delete ${preset.name} preset`}
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          <div className="flex-1">
-            <label
-              htmlFor="custom-height"
-              className="mb-1.5 block text-[10px] font-heading font-semibold uppercase tracking-wider text-[var(--muted)]"
-            >
-              Height
-            </label>
-            <input
-              id="custom-height"
-              type="number"
-              autoComplete="off"
-              min={16}
-              max={7680}
-              step={2}
-              value={recipe.customHeight}
-              onChange={(e) => handleHeightChange(Number(e.target.value))}
-              className="w-full min-w-20 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-heading transition-all focus:outline-none focus:ring-2 focus:ring-film-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            />
-          </div>
+      {isCustomRecipe && (
+        <div className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm animate-fade-in">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-2">
+            <div className="min-w-0">
+              <label
+                htmlFor="custom-width"
+                className="mb-1.5 block text-[10px] font-heading font-semibold uppercase tracking-wider text-[var(--muted)]"
+              >
+                Width (px)
+              </label>
+              <input
+                id="custom-width"
+                type="number"
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                min={16}
+                max={7680}
+                step={2}
+                value={widthInput}
+                onChange={handleWidthInputChange}
+                onBlur={() => {
+                  if (!widthInput) setWidthInput(String(recipe.customWidth));
+                }}
+                className="h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-heading transition-all focus:outline-none focus:ring-2 focus:ring-film-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
+            </div>
 
-          <div className="hidden h-full flex-col justify-end sm:flex">
-            <span className="mb-1.5 block text-center text-[10px] font-heading font-semibold uppercase tracking-wider text-[var(--muted)]">
-              Ratio
-            </span>
-            <div className="flex h-[38px] items-center rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 text-xs font-medium text-film-700">
-              {getOrientationLabel(
-                recipe.customWidth || 0,
-                recipe.customHeight || 0,
-              )}
+            <div className="flex h-10 items-center pb-px">
+              <span className="font-heading text-sm font-medium text-[var(--muted)]">
+                x
+              </span>
+            </div>
+
+            <div className="min-w-0">
+              <label
+                htmlFor="custom-height"
+                className="mb-1.5 block text-[10px] font-heading font-semibold uppercase tracking-wider text-[var(--muted)]"
+              >
+                Height (px)
+              </label>
+              <input
+                id="custom-height"
+                type="number"
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                min={16}
+                max={7680}
+                step={2}
+                value={heightInput}
+                onChange={handleHeightInputChange}
+                onBlur={() => {
+                  if (!heightInput) setHeightInput(String(recipe.customHeight));
+                }}
+                className="h-10 w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 text-sm font-heading transition-all focus:outline-none focus:ring-2 focus:ring-film-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
             </div>
           </div>
+
+          <p className="mt-2 text-center text-[11px] font-medium text-[var(--muted)]">
+            {recipe.customWidth}x{recipe.customHeight} -{" "}
+            {getOrientationLabel(recipe.customWidth || 1, recipe.customHeight || 1)}
+          </p>
+        </div>
+      )}
+
+      {isSaveOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="save-preset-title"
+        >
+          <form
+            onSubmit={handleSave}
+            className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xl"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h3
+                id="save-preset-title"
+                className="font-heading text-lg font-bold text-[var(--text)]"
+              >
+                Save preset
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsSaveOpen(false)}
+                className="rounded-md p-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--border)] hover:text-[var(--text)]"
+                aria-label="Close save preset dialog"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <label
+              htmlFor="preset-name"
+              className="mb-1.5 block text-xs font-heading font-bold uppercase tracking-wider text-[var(--muted)]"
+            >
+              Preset name
+            </label>
+            <input
+              id="preset-name"
+              ref={presetNameRef}
+              type="text"
+              value={presetName}
+              onChange={(event) => setPresetName(event.target.value)}
+              placeholder="Instagram portrait 1080p"
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-heading text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-film-400"
+            />
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSaveOpen(false)}
+                className="rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-heading font-bold uppercase tracking-wider text-[var(--muted)] transition-colors hover:bg-[var(--border)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="rounded-lg bg-film-600 px-3 py-2 text-xs font-heading font-bold uppercase tracking-wider text-white transition-colors hover:bg-film-700"
+              >
+                Save preset
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
