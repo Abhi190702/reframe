@@ -2,7 +2,6 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { EditRecipe, ExportResult } from "./types";
 import { getRecipeDimensions } from "./presets";
-import { simd } from "wasm-feature-detect";
 
 const CORE_BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
 
@@ -40,16 +39,9 @@ export async function loadFFmpeg(signal?: AbortSignal,
   try {
 
     ffmpeg.on("progress", handleProgress);
-    // Check if the user's browser supports WebAssembly SIMD
-    const isSimdSupported = await simd();
-
-    // Dynamically set the core filename
-    const coreName = isSimdSupported ? "ffmpeg-core-simd" : "ffmpeg-core";
-
-    // Load FFmpeg using the dynamic URLs + the new signal parameter
     await ffmpeg.load({
-      coreURL: await toBlobURL(`${CORE_BASE_URL}/${coreName}.js`, "text/javascript"),
-      wasmURL: await toBlobURL(`${CORE_BASE_URL}/${coreName}.wasm`, "application/wasm"),
+      coreURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.wasm`, "application/wasm"),
     }, { signal });
     onProgress?.(100);
     return ffmpeg;

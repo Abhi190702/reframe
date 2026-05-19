@@ -224,7 +224,6 @@ export function useVideoEditor() {
      }  catch (err) {
       if (exportCancelledRef.current) return;
 
-      console.error("export failed:", err);
       if (err instanceof FFmpegLoadError) {
         setError(err.message);
       } else if (err instanceof Error && err.message.includes('network')) {

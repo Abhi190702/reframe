@@ -41,6 +41,10 @@ export function getPresetById(id: string): Preset | undefined {
 }
 
 export function getRecipeDimensions(recipe: Pick<EditRecipe, "preset" | "customWidth" | "customHeight">) {
+  if (recipe.preset === "custom") {
+    return { width: recipe.customWidth, height: recipe.customHeight };
+  }
+
   const preset = getPresetById(recipe.preset);
   return preset
     ? { width: preset.width, height: preset.height }

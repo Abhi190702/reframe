@@ -37,4 +37,12 @@ describe('getPresetById', () => {
       customHeight: 1350,
     })).toEqual({ width: 1080, height: 1350 });
   });
+
+  it('uses recipe dimensions for the custom preset editor', () => {
+    expect(getRecipeDimensions({
+      preset: 'custom',
+      customWidth: 1080,
+      customHeight: 1350,
+    })).toEqual({ width: 1080, height: 1350 });
+  });
 });
