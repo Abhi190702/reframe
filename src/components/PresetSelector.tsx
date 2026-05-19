@@ -7,7 +7,7 @@ import {
 } from "@/lib/presets";
 import { EditRecipe } from "@/lib/types";
 import { Settings2, Lock, Unlock, Save, X } from "lucide-react";
-import { FormEvent, useEffect, useState, useCallback, useRef } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -45,6 +45,10 @@ function RatioBox({ width, height, active }: { width: number; height: number; ac
   );
 }
 
+function sanitizeDimensionInput(value: string): string {
+  return value.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+}
+
 export default function PresetSelector({
   recipe,
   customPresets,
@@ -57,6 +61,8 @@ export default function PresetSelector({
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [presetName, setPresetName] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [widthInput, setWidthInput] = useState(String(recipe.customWidth));
+  const [heightInput, setHeightInput] = useState(String(recipe.customHeight));
 
   const lockedRef = useRef(false);
   const aspectRatioRef = useRef(16 / 9);
@@ -68,6 +74,14 @@ export default function PresetSelector({
       presetNameRef.current?.focus();
     }
   }, [isSaveOpen]);
+
+  useEffect(() => {
+    setWidthInput(String(recipe.customWidth));
+  }, [recipe.customWidth]);
+
+  useEffect(() => {
+    setHeightInput(String(recipe.customHeight));
+  }, [recipe.customHeight]);
 
   const handleToggleLock = useCallback(() => {
     if (!lockedRef.current) {
@@ -93,6 +107,20 @@ export default function PresetSelector({
     if (lockedRef.current) patch.customWidth = Math.round(h * aspectRatioRef.current);
     onChange(patch);
   }, [onChange]);
+
+  const handleWidthInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = sanitizeDimensionInput(event.target.value);
+    setWidthInput(nextValue);
+    if (!nextValue) return;
+    handleWidthChange(Number(nextValue));
+  }, [handleWidthChange]);
+
+  const handleHeightInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const nextValue = sanitizeDimensionInput(event.target.value);
+    setHeightInput(nextValue);
+    if (!nextValue) return;
+    handleHeightChange(Number(nextValue));
+  }, [handleHeightChange]);
 
   const handleOpenSave = () => {
     if (customPresets.length >= MAX_CUSTOM_PRESETS) {
@@ -271,9 +299,12 @@ export default function PresetSelector({
               min={16}
               max={7680}
               step={2}
-              value={recipe.customWidth}
+              value={widthInput}
               spellCheck={false}
-              onChange={(e) => handleWidthChange(Number(e.target.value))}
+              onChange={handleWidthInputChange}
+              onBlur={() => {
+                if (!widthInput) setWidthInput(String(recipe.customWidth));
+              }}
               className="w-full text-sm px-3 py-1.5 border border-[var(--border)] rounded-md bg-[var(--bg)] font-heading focus:outline-none focus:ring-2 focus:ring-film-400 transition-shadow"
             />
             {recipe.customWidth % 2 !== 0 && (
@@ -308,9 +339,12 @@ export default function PresetSelector({
               min={16}
               max={7680}
               step={2}
-              value={recipe.customHeight}
+              value={heightInput}
               spellCheck={false}
-              onChange={(e) => handleHeightChange(Number(e.target.value))}
+              onChange={handleHeightInputChange}
+              onBlur={() => {
+                if (!heightInput) setHeightInput(String(recipe.customHeight));
+              }}
               className="w-full text-sm px-3 py-1.5 border border-[var(--border)] rounded-md bg-[var(--bg)] font-heading focus:outline-none focus:ring-2 focus:ring-film-400 transition-shadow"
             />
             {recipe.customHeight % 2 !== 0 && (
