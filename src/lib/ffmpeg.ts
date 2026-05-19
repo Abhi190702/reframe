@@ -1,7 +1,7 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { EditRecipe, ExportResult } from "./types";
-import { getPresetById } from "./presets";
+import { getRecipeDimensions } from "./presets";
 import { simd } from "wasm-feature-detect";
 
 const CORE_BASE_URL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd";
@@ -163,15 +163,7 @@ export async function exportVideo(
   signal?: AbortSignal
 ): Promise<ExportResult> {
   const sessionId = buildSessionId();
-  let targetW: number, targetH: number;
-  if (recipe.preset === "custom") {
-    targetW = recipe.customWidth;
-    targetH = recipe.customHeight;
-  } else {
-    const preset = getPresetById(recipe.preset);
-    targetW = preset?.width ?? 1920;
-    targetH = preset?.height ?? 1080;
-  }
+  let { width: targetW, height: targetH } = getRecipeDimensions(recipe);
 
   // dimensions must be even for libx264
   targetW = Math.round(targetW / 2) * 2;
@@ -308,4 +300,4 @@ export async function exportVideo(
       }
     }
   }
-}
+}

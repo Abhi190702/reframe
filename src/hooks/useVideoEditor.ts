@@ -4,6 +4,13 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { EditRecipe, ExportResult, ExportStatus, MAX_FILE_SIZE } from "@/lib/types";
 import { DEFAULT_RECIPE } from "@/lib/constants";
 import { loadFFmpeg, exportVideo, terminateFFmpeg, FFmpegLoadError } from "@/lib/ffmpeg";
+import {
+  CustomPreset,
+  MAX_CUSTOM_PRESETS,
+  getRecipeDimensions,
+  loadCustomPresets,
+  saveCustomPresets,
+} from "@/lib/presets";
 
 const DEFAULT_TITLE = "Reframe — Resize, trim, and export videos in your browser";
 
@@ -69,13 +76,65 @@ export function useVideoEditor() {
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileError, setFileError] = useState("");
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const exportAbortControllerRef = useRef<AbortController | null>(null);
   const exportCancelledRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  useEffect(() => {
+    setCustomPresets(loadCustomPresets());
+  }, []);
+
   const updateRecipe = useCallback((patch: Partial<EditRecipe>) => {
     setRecipe((prev) => ({ ...prev, ...patch }));
   }, []);
+
+  const saveCustomPreset = useCallback((name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return { ok: false, message: "Preset name is required." };
+    }
+
+    if (customPresets.length >= MAX_CUSTOM_PRESETS) {
+      return {
+        ok: false,
+        message: `You can save up to ${MAX_CUSTOM_PRESETS} custom presets. Delete one before saving another.`,
+      };
+    }
+
+    const dimensions = getRecipeDimensions(recipe);
+    const id = `custom-preset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const preset: CustomPreset = {
+      id,
+      name: trimmedName,
+      createdAt: Date.now(),
+      recipe: {
+        ...recipe,
+        preset: id,
+        customWidth: dimensions.width,
+        customHeight: dimensions.height,
+      },
+    };
+
+    const nextPresets = [preset, ...customPresets].slice(0, MAX_CUSTOM_PRESETS);
+    setCustomPresets(nextPresets);
+    saveCustomPresets(nextPresets);
+
+    return { ok: true, message: `"${trimmedName}" saved.` };
+  }, [customPresets, recipe]);
+
+  const deleteCustomPreset = useCallback((id: string) => {
+    const nextPresets = customPresets.filter((preset) => preset.id !== id);
+    setCustomPresets(nextPresets);
+    saveCustomPresets(nextPresets);
+    setRecipe((prev) => prev.preset === id ? { ...prev, preset: "custom" } : prev);
+  }, [customPresets]);
+
+  const loadCustomPreset = useCallback((id: string) => {
+    const preset = customPresets.find((item) => item.id === id);
+    if (!preset) return;
+    setRecipe(preset.recipe);
+  }, [customPresets]);
 
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     setResult(null);
@@ -272,6 +331,7 @@ export function useVideoEditor() {
     file,
     duration,
     recipe,
+    customPresets,
     status,
     progress,
     result,
@@ -279,6 +339,9 @@ export function useVideoEditor() {
     videoRef,
     seekTo,
     updateRecipe,
+    saveCustomPreset,
+    deleteCustomPreset,
+    loadCustomPreset,
     handleFileSelect,
     fileError,
     handleExport,

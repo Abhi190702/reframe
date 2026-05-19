@@ -49,7 +49,8 @@ function Section({ icon, title, children, delay = 0 }: SectionProps) {
 export default function VideoEditor() {
   const {
     file, duration, recipe, status, progress,
-    result, error, updateRecipe,
+    result, error, customPresets, updateRecipe,
+    saveCustomPreset, deleteCustomPreset, loadCustomPreset,
     handleFileSelect, fileError, handleExport, cancelExport, reset, resetSettings,
     videoRef,
     seekTo,
@@ -122,7 +123,7 @@ export default function VideoEditor() {
 
               {file && (
                 <div className="mt-4 animate-fade-in">
-                  <VideoPreview file={file} videoRef={videoRef} />
+                  <VideoPreview file={file} recipe={recipe} videoRef={videoRef} />
 
                   <div className="mt-3">
                     <ThumbnailStrip
@@ -320,7 +321,14 @@ export default function VideoEditor() {
           )}>
             <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-5 space-y-6 animate-fade-in" style={{ animationDelay: "50ms" }}>
               <Section icon={<Layers size={12} />} title="Output size">
-                <PresetSelector recipe={recipe} onChange={updateRecipe} />
+                <PresetSelector
+                  recipe={recipe}
+                  customPresets={customPresets}
+                  onChange={updateRecipe}
+                  onSavePreset={saveCustomPreset}
+                  onDeletePreset={deleteCustomPreset}
+                  onSelectCustomPreset={loadCustomPreset}
+                />
               </Section>
 
               <Section icon={<Crop size={12} />} title="Framing" delay={100}>

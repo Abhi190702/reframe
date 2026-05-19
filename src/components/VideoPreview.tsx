@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, RefObject } from "react";
 import { EditRecipe } from "@/lib/types";
-import { getPresetById } from "@/lib/presets";
+import { getRecipeDimensions } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -78,11 +78,7 @@ export default function VideoPreview({ file, recipe, videoRef }: Props) {
   const overlay = (() => {
     if (!recipe || !showOverlay) return null;
 
-    const preset = recipe.preset === "custom"
-      ? { width: recipe.customWidth, height: recipe.customHeight }
-      : getPresetById(recipe.preset);
-
-    if (!preset) return null;
+    const preset = getRecipeDimensions(recipe);
 
     // Preview container is 16:9
     const containerW = 16;
