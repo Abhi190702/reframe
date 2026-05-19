@@ -43,6 +43,10 @@ export default function ThumbnailStrip({
     objectUrlsRef.current = [];
   }, []);
 
+  const cancelThumbnailRun = useCallback(() => {
+    lastRunIdRef.current += 1;
+  }, []);
+
   const generateThumbnails = useCallback(async () => {
     if (!videoSrc || duration <= 0) return;
 
@@ -144,10 +148,10 @@ export default function ThumbnailStrip({
       generateThumbnails();
     }
     return () => {
-      lastRunIdRef.current++;
+      cancelThumbnailRun();
       revokeAllObjectUrls();
     };
-  }, [generateThumbnails, revokeAllObjectUrls, videoSrc, duration]);
+  }, [cancelThumbnailRun, generateThumbnails, revokeAllObjectUrls, videoSrc, duration]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
