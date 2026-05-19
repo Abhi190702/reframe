@@ -101,50 +101,58 @@ export default function FileUpload({
   };
 
   const FileInfo = () => (
-    <div className="flex items-center gap-3 px-4 py-3 bg-film-50 border border-film-200 rounded-lg">
-      <Film size={18} className="text-film-600 shrink-0" />
+    <div className="rounded-lg border border-film-200 bg-film-50 px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <Film size={18} className="mt-0.5 shrink-0 text-film-600" />
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm font-medium text-[var(--text)] truncate">
-            {currentFile?.name}
-          </p>
-          {currentFile && (
-            <span className="px-2 py-0.5 bg-gray-700 text-white font-bold tracking-wider rounded text-[10px] uppercase">
-              {currentFile.name.includes('.') ? currentFile.name.split('.').pop() : 'VIDEO'}
-            </span>
-          )}
+          <div className="min-w-0">
+            <div className="mb-1 flex min-w-0 flex-wrap items-center gap-2">
+              {currentFile && (
+                <span className="shrink-0 rounded bg-gray-700 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                  {currentFile.name.includes(".") ? currentFile.name.split(".").pop() : "VIDEO"}
+                </span>
+              )}
+              <p className="min-w-0 break-all text-sm font-medium text-[var(--text)]">
+                {currentFile?.name}
+              </p>
+            </div>
+
+            <p className="text-xs text-[var(--muted)]">
+              {formatBytes(currentFile?.size ?? 0)}
+              {duration !== null
+                ? ` - ${formatDuration(duration)}`
+                : " - Loading metadata..."}
+            </p>
+          </div>
         </div>
 
-        <p className="text-xs text-[var(--muted)]">
-          {formatBytes(currentFile?.size ?? 0)}
-          {duration !== null
-            ? ` • ${formatDuration(duration)}`
-            : " • Loading metadata..."}
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="self-start whitespace-nowrap text-xs font-semibold uppercase tracking-wide text-film-600 hover:text-film-700 sm:self-center"
+        >
+          Change
+          <span className="ml-1 text-[var(--muted)]">(Ctrl+O)</span>
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 border-t border-film-200 pt-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-heading font-medium text-[var(--muted)]">
+          <FolderOpen size={14} />
+          MP4 / MOV / AVI / WebM
+        </div>
+        <p className="text-xs text-gray-500">
+          Supports MP4, MOV, AVI, MKV, WebM, and most video formats
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="text-xs font-semibold text-film-600 hover:text-film-700 uppercase tracking-wide"
-      >
-        Change
-        <span className="text-[var(--muted)] ml-1">(Ctrl+O)</span>
-      </button>
-
-      <div className="flex items-center gap-2 px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-lg text-sm font-heading font-medium text-[var(--muted)]">
-      <FolderOpen size={14} />
-        MP4 / MOV / AVI / WebM
-      </div>
-      <p className="text-xs text-gray-500">
-        Supports: MP4, MOV, AVI, MKV, WebM, and most video formats
-      </p>
       {fileError && (
-        <p className="text-xs text-red-500 mt-2 font-medium">
+        <p className="mt-2 text-xs font-medium text-red-500">
           {fileError}
         </p>
       )}
+
       <input
         ref={inputRef}
         type="file"
