@@ -331,7 +331,7 @@ export default function VideoEditor() {
         paddingTop: 'clamp(0.5rem,2vw,0.75rem)',
       }}
     >
-      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse" />
+      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block animate-pulse" />
       No login. No ads. 100% private.
     </div>
   </div>  
@@ -339,7 +339,7 @@ export default function VideoEditor() {
     className="flex flex-wrap justify-center text-center items-center gap-2 text-sm font-heading font-semibold uppercase tracking-widest text-[var(--muted)] pb-1"
     style={{ justifyContent: 'center', textAlign: 'center', margin: '0', width: 'auto' }}
   >
-    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse" />
+    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-[var(--accent)] inline-block animate-pulse" />
     No login. No ads. 100% private - your video never leaves your device.
   </div>
     </header>
@@ -605,7 +605,7 @@ export default function VideoEditor() {
             (isProcessing || !file) && "pointer-events-none opacity-50"
           )}>
             {!file && (
-              <div className="bg-film-50 dark:bg-film-900/10 border border-film-100 dark:border-film-900/20 rounded-xl p-4 animate-fade-in">
+              <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 animate-fade-in">
                 <p className="text-[10px] font-heading font-bold text-film-600 uppercase tracking-widest">
                   Getting Started
                 </p>
@@ -669,7 +669,7 @@ export default function VideoEditor() {
                 "w-full flex items-center justify-center gap-3 py-5 min-h-[44px] rounded-xl",
                 "font-display text-2xl tracking-widest transition-all duration-200",
                 file && !isProcessing
-                  ? "bg-film-600 hover:bg-film-700 hover:scale-[1.01] text-white shadow-lg shadow-film-200 active:scale-[0.98] cursor-pointer"
+                  ? "bg-[var(--accent)] hover:bg-[var(--accent-hover)] hover:scale-[1.02] text-white shadow-[var(--shadow)] active:scale-[0.98] cursor-pointer"
                   : "bg-[var(--border)] text-[var(--muted)] cursor-not-allowed"
               )}
             >
