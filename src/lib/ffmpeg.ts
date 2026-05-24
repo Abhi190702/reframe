@@ -133,17 +133,24 @@ export function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: n
   }
 
   if (recipe.speed !== 1) {
-  const pts = (1 / recipe.speed).toFixed(4);
-  filters.push(`setpts=${pts}*PTS`);
+    const pts = (1 / recipe.speed).toFixed(4);
+    filters.push(`setpts=${pts}*PTS`);
   }
 
   if (recipe.denoise) {
     filters.push("hqdn3d=1.5:1.5:6:6");
   }
 
-  filters.push(
-    `eq=brightness=${recipe.brightness}:contrast=${recipe.contrast}:saturation=${recipe.saturation}`
-  );
+  const needsEq =
+    recipe.brightness !== 0 ||
+    recipe.contrast !== 1 ||
+    recipe.saturation !== 1;
+
+  if (needsEq) {
+    filters.push(
+      `eq=brightness=${recipe.brightness}:contrast=${recipe.contrast}:saturation=${recipe.saturation}`
+    );
+  }
 
   // Add text overlays
   const textOverlays = recipe.textOverlays || [];
@@ -154,7 +161,7 @@ export function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: n
   return filters.join(",");
 }
 
- export function buildAudioFilter(speed: number, normalizeAudio: boolean): string {
+export function buildAudioFilter(speed: number, normalizeAudio: boolean): string {
   if (speed <= 0) return "";
   const filters: string[] = [];
 
@@ -169,7 +176,7 @@ export function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: n
     remaining /= 2.0;
   }
 
- if (Math.abs(remaining - 1.0) > 0.001) {
+  if (Math.abs(remaining - 1.0) > 0.001) {
     filters.push(`atempo=${Number(remaining.toFixed(4))}`);
   }
 
@@ -290,13 +297,19 @@ function buildArguments(
   }
 
   if (format === "webm") {
-    args.push("-c:v", "libvpx-vp9", "-b:v", "0", "-crf", String(recipe.quality));
+    args.push(
+      "-c:v", "libvpx-vp9",
+      "-b:v", "0",
+      "-crf", String(recipe.quality),
+      "-cpu-used", "4",
+      "-deadline", "realtime"
+    );
     if (shouldKeepAudio) args.push("-c:a", "libopus");
   } else if (format === "mkv") {
-    args.push("-c:v", "libx264", "-crf", String(recipe.quality), "-preset", "medium");
+    args.push("-c:v", "libx264", "-crf", String(recipe.quality), "-preset", "ultrafast");
     if (shouldKeepAudio) args.push("-c:a", "aac", "-b:a", "128k");
   } else {
-    args.push("-c:v", "libx264", "-crf", String(recipe.quality), "-preset", "medium", "-movflags", "+faststart");
+    args.push("-c:v", "libx264", "-crf", String(recipe.quality), "-preset", "ultrafast", "-movflags", "+faststart");
     if (shouldKeepAudio) args.push("-c:a", "aac", "-b:a", "128k");
   }
 
@@ -356,12 +369,6 @@ export async function exportVideo(
   try {
     await ffmpeg.writeFile(inputName, await fetchFile(file), { signal });
 
-    const vf = buildVideoFilter(recipe, targetW, targetH);
-  const audioTrim = buildAudioTrimFilter(recipe);
-  const audioSpeed = buildAudioFilter(recipe.speed, recipe.normalizeAudio ?? false);
-
-  const afParts = [audioTrim, audioSpeed].filter(Boolean);
-  const af = afParts.join(",");
     const hasMusicTrack = !!(musicOptions?.file && recipe.keepAudio);
     const musicInputName = `music_input_${sessionId}.mp3`;
     if (hasMusicTrack) {

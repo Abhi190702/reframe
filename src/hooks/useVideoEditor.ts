@@ -137,6 +137,7 @@ export function useVideoEditor() {
   const [result, setResult] = useState<ExportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fileError, setFileError] = useState("");
+  const [exportStartedAt, setExportStartedAt] = useState<number | null>(null);
   const exportAbortControllerRef = useRef<AbortController | null>(null);
   const exportCancelledRef = useRef(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -430,12 +431,15 @@ export function useVideoEditor() {
       setStatus("loading-engine");
       setProgress(0);
       setError(null);
+      setExportStartedAt(null);
       if (result?.blobUrl) URL.revokeObjectURL(result.blobUrl);
       setResult(null);
 
       const ffmpeg = await loadFFmpeg(abortController.signal);
       if (exportCancelledRef.current) return;
 
+      const startedAt = Date.now();
+      setExportStartedAt(startedAt);
       setStatus("exporting");
 
       const exportResult = await exportVideo(
@@ -459,7 +463,10 @@ export function useVideoEditor() {
       );
       if (exportCancelledRef.current) return;
 
-      setResult(exportResult);
+      setResult({
+        ...exportResult,
+        exportDurationMs: Date.now() - startedAt,
+      });
       setStatus("done");
      }  catch (err) {
       if (exportCancelledRef.current) return;
@@ -474,6 +481,7 @@ export function useVideoEditor() {
       } else {
         setError('Export failed. Please try again or use a different video.');
       }
+      setExportStartedAt(null);
       setStatus("error");
     }
     finally {
@@ -592,6 +600,7 @@ export function useVideoEditor() {
     setStatus("idle");
     setProgress(0);
     setError(null);
+    setExportStartedAt(null);
   }, []);
 
 
@@ -605,6 +614,7 @@ export function useVideoEditor() {
     setProgress(0);
     setResult(null);
     setError(null);
+    setExportStartedAt(null);
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -639,6 +649,7 @@ export function useVideoEditor() {
     recipe,
     status,
     progress,
+    exportStartedAt,
     result,
     error,
     videoRef,
