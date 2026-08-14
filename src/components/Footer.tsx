@@ -93,6 +93,7 @@ export default function Footer() {
         {/* Right Section */}
         <div className="md:col-span-4 space-y-10 md:justify-self-end w-full md:w-auto">
           {/* Newsletter */}
+
           <div className="space-y-3">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-60">
               Updates
@@ -122,12 +123,14 @@ export default function Footer() {
           </div>
 
           {/* Community */}
+
           <div className="space-y-3">
             <h3 className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-60">
               Community
             </h3>
 
             <div className="flex items-center gap-3 flex-wrap">
+
               {[
                 {
                   href: "https://github.com/magic-peach/reframe",
@@ -150,6 +153,7 @@ export default function Footer() {
                   label: "LinkedIn",
                 },
               ].map((social) => (
+
                 <a
                   key={social.label}
                   href={social.href}
@@ -160,6 +164,7 @@ export default function Footer() {
                 >
                   <span className="opacity-70 group-hover:opacity-100">
                     {social.icon}
+
                   </span>
                 </a>
               ))}
