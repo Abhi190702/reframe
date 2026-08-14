@@ -26,6 +26,7 @@ export interface EditRecipe {
   keepAudio: boolean;
   normalizeAudio: boolean;
   speed: number;
+  volume: number;
   quality: number;
   format: "mp4" | "webm" | "mkv" | "gif";
   stabilization: boolean;
@@ -136,6 +137,7 @@ export function isValidRecipe(value: unknown): value is EditRecipe {
   if (typeof v.keepAudio !== "boolean") return false;
   if (typeof v.normalizeAudio !== "boolean") return false;
   if (typeof v.speed !== "number" || !isFinite(v.speed)) return false;
+  if (typeof v.volume !== "number" || !isFinite(v.volume)) return false;
   if (typeof v.quality !== "number" || !isFinite(v.quality)) return false;
   if (!["mp4", "webm", "mkv", "gif"].includes(v.format)) return false;
   if (typeof v.stabilization !== "boolean") return false;
