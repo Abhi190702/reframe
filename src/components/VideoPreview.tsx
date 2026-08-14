@@ -276,6 +276,11 @@ export default function VideoPreview({
           ref={videoRef}
           controls
           className={cn("w-full h-full object-contain transition-opacity duration-300", isLoading ? "opacity-0" : "opacity-100")}
+          style={{
+            filter: recipe
+              ? `brightness(${1 + (recipe.brightness ?? 0)}) contrast(${recipe.contrast ?? 1}) saturate(${recipe.saturation ?? 1})`
+              : undefined,
+          }}
           onLoadedData={() => setIsLoading(false)}
           playsInline
           muted={!recipe?.keepAudio}
