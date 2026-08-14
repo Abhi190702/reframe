@@ -102,6 +102,26 @@ export default function AudioSpeedControl({ recipe, onChange }: Props) {
           aria-valuetext={`${recipe.speed}x speed, ${getSpeedDescription(recipe.speed)}`}
           className="w-full h-11 accent-film-600 cursor-pointer"
         />
+        <div className="flex gap-2 mt-3">
+  {[0.5, 1, 1.5, 2].map((speed) => (
+    <button
+      key={speed}
+      type="button"
+      onClick={() => onChange({ speed })}
+      aria-label={`Set speed to ${speed}x`}
+      aria-pressed={recipe.speed === speed}
+      className={cn(
+        "flex-1 py-1.5 rounded-lg text-xs font-heading font-bold transition-all duration-150",
+        "hover:scale-[1.02] active:scale-[0.98]",
+        recipe.speed === speed
+          ? "bg-film-600 text-white"
+          : "bg-[var(--border)] text-[var(--muted)] hover:bg-film-50 hover:text-film-600"
+      )}
+    >
+      {speed}x
+    </button>
+  ))}
+</div>
         <div className="flex justify-between mt-1 overflow-hidden">
           {SPEED_STEPS.map((s) => (
             <span
