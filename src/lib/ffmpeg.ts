@@ -400,6 +400,9 @@ export function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: n
       `crop=${targetW}:${targetH}`
     );
   }
+  if (recipe.sharpness !== 0) {
+    filters.push(`unsharp=5:5:${recipe.sharpness}:5:5:0.0`);
+  }
 
   // Normalize timestamps only when needed — trim or speed change both
   // require a clean 0-based timeline to produce correct output duration.

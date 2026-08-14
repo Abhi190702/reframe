@@ -34,6 +34,7 @@ export interface EditRecipe {
   contrast: number;
   saturation: number;
   soundOnCompletion: boolean;
+  sharpness: number;
   textOverlays: TextOverlay[];
   version: number;
 }
