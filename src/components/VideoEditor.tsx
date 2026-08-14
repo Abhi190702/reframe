@@ -153,6 +153,14 @@ function KeyboardShortcutsPanel() {
     keys: [<Kbd key="question">?</Kbd>],
     label: "Toggle this panel",
   },
+  {
+    keys: [<Kbd key="i">I</Kbd>],
+    label: "Set trim in point",
+  },
+  {
+    keys: [<Kbd key="o">O</Kbd>],
+    label: "Set trim out point",
+  },
 ];
 
   return (
@@ -222,6 +230,8 @@ export default function VideoEditor() {
     status,
     cancelExport,
     onToggleShortcutsModal: () => {},
+    currentTime,
+    duration,
   });
 
   const [copied, setCopied] = useState(false);
