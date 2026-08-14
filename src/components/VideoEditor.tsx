@@ -308,23 +308,14 @@ export default function VideoEditor() {
       });
     }
   }, [status]);
-  useEffect(() => {
-const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-  if (file) {
-    e.preventDefault();
-    e.returnValue = "";
-  }
-};
 
-window.addEventListener("beforeunload", handleBeforeUnload);
-
-return () => {
-  window.removeEventListener("beforeunload", handleBeforeUnload);
-};
-}, [file]);
 
   const isProcessing = status === "loading-engine" || status === "exporting";
-  const isMac = typeof navigator !== "undefined" && /Mac/i.test(navigator.platform);
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(typeof navigator !== "undefined" && /Mac/i.test(navigator.platform));
+  }, []);
 
   const intervalSeconds = useMemo(() => {
     if (duration <= 30) return 2;
@@ -757,7 +748,7 @@ return () => {
                   onClick={resetSettings}
                   className="text-sm font-heading font-bold uppercase tracking-widest text-[var(--muted)] hover:text-film-600 transition-all opacity-60 hover:opacity-100"
                 >
-                  Reset all settings
+                  Clear saved session
                 </button>
               </div>
             </div>

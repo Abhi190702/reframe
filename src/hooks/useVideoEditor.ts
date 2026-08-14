@@ -24,6 +24,7 @@ import {
   RECIPE_STORAGE_KEY,
   LEGACY_SETTINGS_KEY,
 } from "@/lib/editorPersistence";
+import { saveSessionFile, loadSessionFile, clearSessionFile } from "@/lib/sessionDB";
 
 const DEFAULT_TITLE = "Reframe — Resize, trim, and export videos in your browser";
 
@@ -167,20 +168,7 @@ export function useVideoEditor() {
     height: number;
     duration: number;
   } | null>(null);
-  const [recipe, setRecipe] = useState<EditRecipe>(() => {
-    if (typeof window === "undefined") return { ...DEFAULT_RECIPE };
-    const params = new URLSearchParams(window.location.search);
-    const encoded = params.get("settings");
-    if (encoded) {
-      const decoded = decodeRecipe(encoded);
-      if (decoded) {
-        return migratePersistedRecipe(decoded);
-      }
-    }
-    return loadPersistedRecipe(localStorage, migratePersistedRecipe({
-      soundOnCompletion: getStoredSoundPreference(localStorage),
-    }));
-  });
+  const [recipe, setRecipe] = useState<EditRecipe>({ ...DEFAULT_RECIPE });
   const [status, setStatus] = useState<ExportStatus>("idle");
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<ExportResult | null>(null);
@@ -268,8 +256,33 @@ export function useVideoEditor() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    
+    // Auto-restore saved video session
+    loadSessionFile().then(async (savedFile) => {
+      if (savedFile) {
+        try {
+          const { width, height, duration: dur } = await extractMetadata(savedFile);
+          setDuration(dur);
+          setVideoMetadata({ width, height, duration: dur });
+          setFile(savedFile);
+        } catch (e) {
+          console.error("Failed to restore video session:", e);
+          clearSessionFile().catch(console.error);
+        }
+      }
+    }).catch(console.error);
+
     try {
       const params = new URLSearchParams(window.location.search);
+      const encoded = params.get("settings");
+      if (encoded) {
+        const decoded = decodeRecipe(encoded);
+        if (decoded) {
+          setRecipe(migratePersistedRecipe(decoded));
+          return;
+        }
+      }
+
       const recipeKeys = Object.keys(DEFAULT_RECIPE) as Array<keyof EditRecipe>;
       const hasRecipeParams = recipeKeys.some(key => params.has(key));
 
@@ -302,7 +315,10 @@ export function useVideoEditor() {
           }));
         }
       } else {
-        setRecipe((current) => loadPersistedRecipe(localStorage, current));
+        setRecipe((current) => loadPersistedRecipe(localStorage, migratePersistedRecipe({
+          ...current,
+          soundOnCompletion: getStoredSoundPreference(localStorage),
+        })));
       }
     } catch (e) {
       // ignore
@@ -424,6 +440,7 @@ export function useVideoEditor() {
         setDuration(dur);
         setVideoMetadata({ width, height, duration: dur });
         setFile(selectedFile);
+        saveSessionFile(selectedFile).catch(console.error);
 
         if (dimensionCheck === "warning") {
           console.warn(`[Reframe] High resolution video detected (${width}×${height}). Export may be slow.`);
@@ -641,6 +658,7 @@ export function useVideoEditor() {
     try {
       localStorage.removeItem(RECIPE_STORAGE_KEY);
       localStorage.removeItem(LEGACY_SETTINGS_KEY);
+      clearSessionFile().catch(console.error);
     } catch {
       // ignore
     }
@@ -672,6 +690,7 @@ export function useVideoEditor() {
     try {
       localStorage.removeItem(RECIPE_STORAGE_KEY);
       localStorage.removeItem(LEGACY_SETTINGS_KEY);
+      clearSessionFile().catch(console.error);
     } catch {
       // ignore
     }
